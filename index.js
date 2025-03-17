@@ -4,6 +4,7 @@ import { patientRoutes } from './routes/patientRoutes.js';
 import { doctorRoutes } from './routes/doctorRoutes.js';
 import { ngoRoutes } from './routes/ngoRoutes.js';
 import dotenv from 'dotenv';
+import { ticketRoutes } from './routes/ticketRoutes.js';
 dotenv.config();
 const app = express();
 
@@ -17,6 +18,7 @@ app.get('/', (req, res) => {
 app.use('/patient', patientRoutes);
 app.use('/doctor', doctorRoutes);
 app.use('/ngo', ngoRoutes);
+app.use('/ticket', ticketRoutes);
 
 const port = parseInt(process.env.PORT) || 5000;
 app.listen(port, () => {

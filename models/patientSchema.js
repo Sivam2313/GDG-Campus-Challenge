@@ -19,6 +19,10 @@ const patientSchema = new mongoose.Schema({
     dosage: { type: String },
     frequency: { type: String },
   }],
+  ticketSubscribers:[{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Ngo'
+  }],
   appointments: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Appointment' }],
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },

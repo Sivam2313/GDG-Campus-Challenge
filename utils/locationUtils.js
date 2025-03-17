@@ -25,17 +25,14 @@ async function selectClosestAddress(address, destinationList) {
         throw new Error("Invalid response format from Distance Matrix API");
       }
 
-    let minDistance = Infinity;
-    let closestAddressIndex = -1;
+    let closestDestinations = [];
     data.rows[0].elements.forEach((element, index) => {
-      if (element.distance.value < minDistance) {
-        minDistance = element.distance.value;
-        closestAddressIndex = index;
+      if (element.distance.value < destinationList[index].operatingArea*1000) {
+        closestDestinations.push(destinationList[index]);
       }
     });
-    console.log(minDistance);
     
-    return closestAddressIndex !== -1 ? destinationList[closestAddressIndex] : null;
+    return closestDestinations;
   } catch (error) {
     throw new Error(`Error fetching distance matrix data: ${error.message}`);
   }

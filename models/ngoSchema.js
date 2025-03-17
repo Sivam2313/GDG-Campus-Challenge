@@ -26,6 +26,10 @@ const ngoSchema = new mongoose.Schema({
         enum: [10, 30, 50, 100, 500, 1000, Infinity],
         required: true 
     },
+    ticketQueue:[{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Ticket',
+    }],
     createdAt: {
         type: Date,
         default: Date.now,

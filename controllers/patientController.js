@@ -39,7 +39,7 @@ export const addPatient = expressAsyncHandler(async (req, res) => {
     res.status(201).json(patient)
 })
 
-export const getClosestNgo = expressAsyncHandler(async (req, res) => {
+export const setClosestNgoSubscribers = expressAsyncHandler(async (req, res) => {
     const { id } = req.body;
 
     if (!id) {
@@ -57,10 +57,20 @@ export const getClosestNgo = expressAsyncHandler(async (req, res) => {
     const destinationList = ngos.map(ngo => ({
         latitude: ngo.latitude,
         longitude: ngo.longitude,
-        id: ngo._id
+        id: ngo._id,
+        operatingArea: ngo.operatingArea,
     }));
 
     const closestNgo = await selectClosestAddress(patient, destinationList);
+
+    const updatePatient = await Patient.findByIdAndUpdate(id, {
+        $set: {
+            ticketSubscribers: closestNgo.map(ngo => ngo.id)
+        }
+    }, { new: true })
+
+    console.log(updatePatient);
+    
 
     res.status(200).json(closestNgo);
 })
