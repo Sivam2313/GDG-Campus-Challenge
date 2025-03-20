@@ -1,7 +1,8 @@
 import express from 'express';
-import { addDoctor } from '../controllers/doctorController.js';
+import { addDoctor, loginDoctor } from '../controllers/doctorController.js';
 const router = express.Router();
 
 router.post('/register', addDoctor);
+router.post('/login',loginDoctor);
 
 export const doctorRoutes = router;
