@@ -36,7 +36,7 @@ export const addDoctor = asyncHandler(async (req, res) => {
     credentials: hashedCredentials,
     latitude,
     longitude,
-    availability, // ✅ Add availability directly
+    availability,
   });
 
   const token = jwt.sign({ doctorId: doctor._id, contact: doctor.contact }, process.env.SECRET_KEY, { expiresIn: '1h' });

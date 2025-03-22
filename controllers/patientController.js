@@ -1,29 +1,26 @@
 import expressAsyncHandler from "express-async-handler";
-import { Patient } from "../models/patientSchema.js";
+import Patient  from "../models/patientSchema.js";
 import { geocodeAddress } from "../utils/geocode.js";
 import Ngo from "../models/ngoSchema.js";
 import selectClosestAddress from "../utils/locationUtils.js";
 import Doctor from "../models/doctorSchema.js";
 import { genAI } from '../config/google-generative-ai.js';
+import Appointment from "../models/appointmentSchema.js";
+import jwt from 'jsonwebtoken';
 
 export const addPatient = expressAsyncHandler(async (req, res) => {
 
     const { name, address, phone, gender, dob, description } = req.body;
-
     if (!name || !address || !phone || !gender || !dob || !description) {
         res.status(400);
         throw new Error("Please add all the fields");
     }
-
     const existingPatient = await Patient.findOne({ phone });
     if (existingPatient) {
         res.status(400);
         throw new Error("Patient already exists");
     }
-
     const { latitude, longitude } = await geocodeAddress(address);
-
-
     const patient = {
         name: name,
         address: address,
@@ -34,9 +31,35 @@ export const addPatient = expressAsyncHandler(async (req, res) => {
         longitude: longitude,
         description: description
     };
-
     await Patient.create(patient);
     res.status(201).json(patient)
+    
+})
+
+
+export const loginPatient = expressAsyncHandler(async (req, res) =>{
+    const { phone, name } = req.body;
+    const isValidPhoneNumber = /^(\+91\s?|0)?[6-9][0-9]{9}$/.test(phone);
+    if (!phone || !name) {
+        res.status(400);
+        throw new Error("Please add all the fields");
+    }
+    if(!isValidPhoneNumber){
+        res.status(400);
+        throw new Error("Invalid Phone Number")
+    }
+    const patient = await Patient.findOne({ phone });
+    if (!patient) {
+        res.status(400);
+        throw new Error("Patient does not exist");
+    }
+    const isMatch = (patient.name === name);
+    if(!isMatch){
+        res.status(400).json({message: 'Invalid Name'});
+        return;
+    }
+    const token = jwt.sign({ patientId: patient._id, contact: patient.phone }, process.env.SECRET_KEY, { expiresIn: '1h' });
+    res.status(201).json({token})
 })
 
 export const setClosestNgoSubscribers = expressAsyncHandler(async (req, res) => {
@@ -118,28 +141,28 @@ export const showDoctorsList = expressAsyncHandler(async (req, res) => {
     }
 
     const prompt = `Patient has described their symptoms as: "${patientSymptoms}".  
-Here is a list of available doctors with their specializations and availability:  
-${allDoctors.map(d => `${d.id} - ${d.name} - ${d.specialization} - ${JSON.stringify(d.availability)}`).join('\n')}. 
+                    Here is a list of available doctors with their specializations and availability:  
+                    ${allDoctors.map(d => `${d.id} - ${d.name} - ${d.specialization} - ${JSON.stringify(d.availability)}`).join('\n')}. 
 
-Based on the symptoms, suggest suitable doctors in JSON format.  
+                    Based on the symptoms, suggest suitable doctors in JSON format.  
 
-Use this JSON schema:  
-Doctor = {
-    'id': str, 
-    'name': str, 
-    'specialization': str, 
-    'availability': list[{
-        'day': str, 
-        'slots': list[{
-            'startTime': str, 
-            'endTime': str, 
-            'isBooked': bool
-        }]
-    }]
-}  
-Return: list[Doctor] 
-Provide output as a raw JSON object, not as a string and without any formatting.
-`;
+                    Use this JSON schema:  
+                    Doctor = {
+                        'id': str, 
+                        'name': str, 
+                        'specialization': str, 
+                        'availability': list[{
+                            'day': str, 
+                            'slots': list[{
+                                'startTime': str, 
+                                'endTime': str, 
+                                'isBooked': bool
+                            }]
+                        }]
+                    }  
+                    Return: list[Doctor] 
+                    Provide output as a raw JSON object, not as a string and without any formatting.
+                    `;
 
     try {
         const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
@@ -164,5 +187,53 @@ Provide output as a raw JSON object, not as a string and without any formatting.
         console.error("Error fetching response from Gemini:", error.message);
         res.status(500).json({ message: "Failed to retrieve recommended doctors" });
     }
+});
+
+
+
+export const selectDoctorFromList = expressAsyncHandler(async (req, res) => {
+    const { doctorId, day, startTime, endTime } = req.body;
+    
+    if (!doctorId || !day || !startTime || !endTime) {
+        return res.status(400).json({ message: 'Doctor ID, day, startTime, and endTime are required' });
+    }
+    const doctor = await Doctor.findById(doctorId);
+    if (!doctor) {
+        return res.status(404).json({ message: 'Doctor not found' });
+    }
+
+    const dayAvailability = doctor.availability.find(avail => avail.day === day);
+    if (!dayAvailability) {
+        return res.status(400).json({ message: `Doctor not available on ${day}` });
+    }
+
+    const slotIndex = dayAvailability.slots.findIndex(
+        slot => 
+            slot.startTime === startTime &&
+            slot.endTime === endTime &&
+            !slot.isBooked
+    );
+
+    if (slotIndex === -1) {
+        return res.status(400).json({ message: 'Time slot not available or already booked' });
+    }
+    console.log(req.patient);
+    const appointment = new Appointment({
+        doctorId,
+        patientId: req.patient.id, // Assuming authenticated user
+        day,
+        startTime,
+        endTime,
+        status: 'BOOKED',
+    });
+    await appointment.save();
+
+    dayAvailability.slots[slotIndex].isBooked = true;
+    await doctor.save();
+
+    res.status(201).json({
+        message: 'Appointment booked successfully',
+        appointment
+    });
 });
 
