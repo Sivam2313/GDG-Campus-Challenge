@@ -7,35 +7,36 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 export const addDoctor = asyncHandler(async (req, res) => {
-  const { name, specialization, contact, credentials, address } = req.body;
+  const { name, specialization, contact, credentials, address, availability } = req.body;
 
   if (!name || !specialization || !contact || !credentials || !address) {
     res.status(400);
     throw new Error('Please add all fields');
   }
   
-  const {latitude, longitude} = await geocodeAddress(address)
-  if(!latitude || !longitude){
+  const { latitude, longitude } = await geocodeAddress(address);
+  if (!latitude || !longitude) {
     res.status(500);
-    throw new Error('Could not retrieve coordinates')
+    throw new Error('Could not retrieve coordinates');
   }
 
-  const existingDoctor = await Doctor.findOne({contact})
-
-  if(existingDoctor){
+  const existingDoctor = await Doctor.findOne({ contact });
+  if (existingDoctor) {
     res.status(400);
-    throw new Error('Doctor already exists')
+    throw new Error('Doctor already exists');
   }
 
   const salt = await bcrypt.genSalt(10);
   const hashedCredentials = await bcrypt.hash(credentials, salt);
+
   const doctor = await Doctor.create({
-    
     name,
     specialization,
     contact,
     credentials: hashedCredentials,
-    latitude, longitude
+    latitude,
+    longitude,
+    availability, // ✅ Add availability directly
   });
 
   const token = jwt.sign({ doctorId: doctor._id, contact: doctor.contact }, process.env.SECRET_KEY, { expiresIn: '1h' });
@@ -64,3 +65,5 @@ export const loginDoctor = asyncHandler(async (req, res) => {
   
   res.status(200).json({ token });
 });
+
+
