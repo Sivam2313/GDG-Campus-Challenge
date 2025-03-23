@@ -11,22 +11,21 @@ const appointmentSchema = new mongoose.Schema({
     ref: 'Doctor',
     required: true,
   },
-  day: {
-    type: String,
+  date: {
+    type: Date,
     required: true,
   },
   startTime: {
-    type: String, 
+    type: Date, 
     required: true,
   },
   endTime: {
-    type: String, 
+    type: Date, 
     required: true,
   },
   status: {
-    type: String,
-    enum: ['BOOKED', 'FREE', 'COMPLETED'],
-    default: 'FREE',
+    type: Boolean,
+    default: false,
   },
 }, { timestamps: true });
 

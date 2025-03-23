@@ -32,7 +32,13 @@ export const addPatient = expressAsyncHandler(async (req, res) => {
         description: description
     };
     await Patient.create(patient);
-    res.status(201).json(patient)
+
+    const token = jwt.sign(
+        { patientId: patient._id, contact: patient.phone },
+        process.env.SECRET_KEY,
+        { expiresIn: '1h' }
+      );
+    res.status(201).json(token)
     
 })
 
@@ -126,7 +132,7 @@ export const showDoctorsList = expressAsyncHandler(async (req, res) => {
             name: doctor.name,
             specialization: doctor.specialization,
             availability: doctor.availability?.map((avail) => ({
-                day: avail.day,
+                date: avail.date,
                 slots: avail.slots?.map((slot) => ({
                     startTime: slot.startTime,
                     endTime: slot.endTime,
@@ -152,7 +158,7 @@ export const showDoctorsList = expressAsyncHandler(async (req, res) => {
                         'name': str, 
                         'specialization': str, 
                         'availability': list[{
-                            'day': str, 
+                            'date': str, 
                             'slots': list[{
                                 'startTime': str, 
                                 'endTime': str, 
@@ -192,48 +198,64 @@ export const showDoctorsList = expressAsyncHandler(async (req, res) => {
 
 
 export const selectDoctorFromList = expressAsyncHandler(async (req, res) => {
-    const { doctorId, day, startTime, endTime } = req.body;
+    const { doctorId, date, startTime, endTime } = req.body;
     
-    if (!doctorId || !day || !startTime || !endTime) {
-        return res.status(400).json({ message: 'Doctor ID, day, startTime, and endTime are required' });
+    if (!doctorId || !date || !startTime || !endTime) {
+        return res.status(400).json({ message: 'Doctor ID, date, startTime, and endTime are required' });
     }
+
     const doctor = await Doctor.findById(doctorId);
     if (!doctor) {
         return res.status(404).json({ message: 'Doctor not found' });
     }
 
-    const dayAvailability = doctor.availability.find(avail => avail.day === day);
-    if (!dayAvailability) {
-        return res.status(400).json({ message: `Doctor not available on ${day}` });
+    const appointmentDate = new Date(date);
+
+    const start = new Date(date);
+    const end = new Date(date);
+
+    const [startHours, startMinutes] = startTime.split(':');
+    const [endHours, endMinutes] = endTime.split(':');
+
+    start.setHours(startHours, startMinutes);
+    end.setHours(endHours, endMinutes);
+
+    const dateAvailability = doctor.availability.find(avail =>
+        avail.date.getTime() === appointmentDate.getTime()
+    );
+
+    if (!dateAvailability) {
+        return res.status(400).json({ message: `Doctor not available on ${date}` });
     }
 
-    const slotIndex = dayAvailability.slots.findIndex(
-        slot => 
-            slot.startTime === startTime &&
-            slot.endTime === endTime &&
+    const slotIndex = dateAvailability.slots.findIndex(
+        slot =>
+            slot.startTime.getTime() === start.getTime() &&
+            slot.endTime.getTime() === end.getTime() &&
             !slot.isBooked
     );
 
     if (slotIndex === -1) {
         return res.status(400).json({ message: 'Time slot not available or already booked' });
     }
-    console.log(req.patient);
+
     const appointment = new Appointment({
         doctorId,
-        patientId: req.patient.id, // Assuming authenticated user
-        day,
-        startTime,
-        endTime,
-        status: 'BOOKED',
+        patientId: req.patient.id, 
+        date: appointmentDate,
+        startTime: start,
+        endTime: end,
+        status: true,
     });
-    await appointment.save();
 
-    dayAvailability.slots[slotIndex].isBooked = true;
+    await appointment.save();
+    dateAvailability.slots[slotIndex].isBooked = true;
     await doctor.save();
 
     res.status(201).json({
         message: 'Appointment booked successfully',
-        appointment
+        appointment,
     });
 });
+
 
