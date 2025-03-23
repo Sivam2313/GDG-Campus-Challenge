@@ -1,6 +1,6 @@
 import expressAsyncHandler from "express-async-handler";
 import { Ticket }  from "../models/ticketSchema.js";
-import { Patient } from "../models/patientSchema.js";
+import Patient from "../models/patientSchema.js";
 import Ngo from "../models/ngoSchema.js";
 
 export const addTicket = expressAsyncHandler(async (req, res) => {
