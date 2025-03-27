@@ -58,3 +58,27 @@ export const protectPatient = expressAsyncHandler(async (req, res, next) => {
     res.status(401).json({ message: 'Not authorized, no token' });
   }
 })
+
+export const protectNgo = asyncHandler(async (req, res, next) => {
+  let token;
+
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    try {
+      token = req.headers.authorization.split(' ')[1];
+      const decoded = jwt.verify(token, process.env.SECRET_KEY);
+      req.ngo = await Ngo.findById(decoded.ngoId);
+
+      if (!req.ngo) {
+        res.status(401);
+        throw new Error('Not authorized, NGO not found');
+      }
+
+      next();
+    } catch (error) {
+      console.error(error);
+      res.status(401).json({ message: 'Not authorized, token failed' });
+    }
+  } else {
+    res.status(401).json({ message: 'Not authorized, no token' });
+  }
+});
