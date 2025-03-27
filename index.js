@@ -6,6 +6,7 @@ import { ngoRoutes } from './routes/ngoRoutes.js';
 import dotenv from 'dotenv';
 import { ticketRoutes } from './routes/ticketRoutes.js';
 import cors from 'cors';
+import { appointmentRoutes } from './routes/appointmentRoutes.js';
 dotenv.config();
 const app = express();
 
@@ -21,6 +22,7 @@ app.use('/patient', patientRoutes);
 app.use('/doctor', doctorRoutes);
 app.use('/ngo', ngoRoutes);
 app.use('/ticket', ticketRoutes);
+app.use('/appointment', appointmentRoutes);
 
 const port = parseInt(process.env.PORT) || 5000;
 app.listen(port, () => {

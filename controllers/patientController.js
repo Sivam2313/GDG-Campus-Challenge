@@ -264,7 +264,7 @@ const createJitsiLink = (meetingName) => {
 };
 
 export const showAppointments = expressAsyncHandler(async (req, res) => {
-    const { patientId } = req.body;
+    const  patientId  = req.patient._id;
 
     if (!patientId) {
         res.status(400);
@@ -276,7 +276,7 @@ export const showAppointments = expressAsyncHandler(async (req, res) => {
         .sort({ date: 1, startTime: 1 });
 
     if (!appointments.length) {
-        res.status(404);
+        res.status(200).json([]);
         throw new Error('No appointments found');
     }
 
