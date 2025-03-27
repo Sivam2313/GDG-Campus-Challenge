@@ -12,12 +12,14 @@ dotenv.config();
 export const addDoctor = asyncHandler(async (req, res) => {
 
   const { name, specialization, contact, credentials, address } = req.body;
+  
   if (!name || !specialization || !contact || !credentials || !address) {
     res.status(400);
     throw new Error('Please add all fields');
   }
 
-  const isValidPhoneNumber = /^(\+91\s?|0)?[6-9][0-9]{9}$/.test(contact);
+  // const isValidPhoneNumber = /^(\+91\s?|0)?[6-9][0-9]{9}$/.test(contact);
+  const isValidPhoneNumber = true;
 
   if(!isValidPhoneNumber){
     res.status(400);
@@ -145,7 +147,7 @@ export const addAvailability = asyncHandler(async (req, res) => {
 
 
 export const showAppointments = expressAsyncHandler(async (req, res) => {
-  const { doctorId } = req.body;
+  const doctorId  = req.doctor.doctorId;
 
   if (!doctorId) {
     res.status(400);
@@ -191,3 +193,8 @@ export const showSlots = expressAsyncHandler(async (req, res) => {
       availableSlots,
   });
 });
+
+export const getAllDoctors = expressAsyncHandler(async (req, res) => {
+  const doctors = await Doctor.find();
+  res.status(200).json(doctors);
+})

@@ -7,7 +7,7 @@ const router = express.Router();
 router.post('/register', addPatient);
 router.post('/login', loginPatient);
 router.get('/findClosestNgos', setClosestNgoSubscribers);
-router.get('/bestPossibleDoctors', showDoctorsList);
+router.get('/bestPossibleDoctors',protectPatient, showDoctorsList);
 router.post('/selectYourDoctor', protectPatient, selectDoctorFromList);
 
 export const patientRoutes = router;

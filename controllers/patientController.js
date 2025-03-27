@@ -103,7 +103,8 @@ export const setClosestNgoSubscribers = expressAsyncHandler(async (req, res) => 
 })
 
 export const showDoctorsList = expressAsyncHandler(async (req, res) => {
-    const { id } = req.body;
+    const { symptoms } = req.body;
+    const id = req.patient._id;
     if (!id) {
         res.status(400);
         throw new Error("Bad Request - Missing id");
@@ -115,7 +116,7 @@ export const showDoctorsList = expressAsyncHandler(async (req, res) => {
         throw new Error("No Patient found with that id");
     }
 
-    const patientSymptoms = patient.description;
+    const patientSymptoms = symptoms;
     let allDoctors = [];
     try {
         // Include availability in the query

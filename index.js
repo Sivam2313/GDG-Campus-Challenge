@@ -5,9 +5,11 @@ import { doctorRoutes } from './routes/doctorRoutes.js';
 import { ngoRoutes } from './routes/ngoRoutes.js';
 import dotenv from 'dotenv';
 import { ticketRoutes } from './routes/ticketRoutes.js';
+import cors from 'cors';
 dotenv.config();
 const app = express();
 
+app.use(cors());
 
 app.use(express.json());
 
