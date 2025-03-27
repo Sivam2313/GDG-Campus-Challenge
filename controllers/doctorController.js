@@ -17,21 +17,16 @@ export const addDoctor = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error('Please add all fields');
   }
-
-  // const isValidPhoneNumber = /^(\+91\s?|0)?[6-9][0-9]{9}$/.test(contact);
-  const isValidPhoneNumber = true;
-
+  const isValidPhoneNumber = /^(\+91\s?|0)?[6-9][0-9]{9}$/.test(contact);
   if(!isValidPhoneNumber){
     res.status(400);
     throw new Error('Invalid Contact Details');
   }
-
   const { latitude, longitude } = await geocodeAddress(address);
   if (!latitude || !longitude) {
     res.status(500);
     throw new Error('Could not retrieve coordinates');
   }
-
   const existingDoctor = await Doctor.findOne({ contact });
   if (existingDoctor) {
     res.status(400);
@@ -146,6 +141,11 @@ export const addAvailability = asyncHandler(async (req, res) => {
 });
 
 
+const createJitsiLink = (meetingName) => {
+  const baseUrl = 'https://meet.jit.si/';
+  return `${baseUrl}${encodeURIComponent(meetingName)}`;
+};
+
 export const showAppointments = expressAsyncHandler(async (req, res) => {
   const doctorId  = req.doctor.doctorId;
 
@@ -163,7 +163,27 @@ export const showAppointments = expressAsyncHandler(async (req, res) => {
     throw new Error('No appointments found');
   }
 
-  res.status(200).json(appointments);
+  const updatedAppointments = appointments.map((appointment) => {
+    const meetingName = `doctor-${appointment.doctorId}-patient-${appointment.patientId._id}-${appointment.date.toISOString().split('T')[0]}`;
+    const meetLink = createJitsiLink(meetingName);
+
+    return {
+      _id: appointment._id,
+      patientId: appointment.patientId._id,
+      doctorId: appointment.doctorId,
+      date: appointment.date,
+      startTime: appointment.startTime,
+      endTime: appointment.endTime,
+      status: appointment.status,
+      createdAt: appointment.createdAt,
+      updatedAt: appointment.updatedAt,
+      meetLink,
+      meetStartTime: appointment.startTime,
+      meetEndTime: appointment.endTime,
+    };
+  });
+
+  res.status(200).json(updatedAppointments);
 });
 
 

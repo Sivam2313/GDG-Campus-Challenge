@@ -30,9 +30,7 @@ export const addTicket = expressAsyncHandler(async (req, res) => {
 
 export const closeTicket = expressAsyncHandler(async (req, res) => {
     const {ticketId} = req.body;
-
-    const ticket = await Ticket.findById(ticketId);
-    
+    const ticket = await Ticket.findById(ticketId);    
     if(ticket){
         notifyDelete(ticket)
         await Ticket.findByIdAndDelete(ticketId);

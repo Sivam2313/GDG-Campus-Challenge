@@ -1,5 +1,5 @@
 import expressAsyncHandler from "express-async-handler";
-import Patient  from "../models/patientSchema.js";
+import Patient from "../models/patientSchema.js";
 import { geocodeAddress } from "../utils/geocode.js";
 import Ngo from "../models/ngoSchema.js";
 import selectClosestAddress from "../utils/locationUtils.js";
@@ -37,20 +37,20 @@ export const addPatient = expressAsyncHandler(async (req, res) => {
         { patientId: patient._id, contact: patient.phone },
         process.env.SECRET_KEY,
         { expiresIn: '1h' }
-      );
+    );
     res.status(201).json(token)
-    
+
 })
 
 
-export const loginPatient = expressAsyncHandler(async (req, res) =>{
+export const loginPatient = expressAsyncHandler(async (req, res) => {
     const { phone, name } = req.body;
     const isValidPhoneNumber = /^(\+91\s?|0)?[6-9][0-9]{9}$/.test(phone);
     if (!phone || !name) {
         res.status(400);
         throw new Error("Please add all the fields");
     }
-    if(!isValidPhoneNumber){
+    if (!isValidPhoneNumber) {
         res.status(400);
         throw new Error("Invalid Phone Number")
     }
@@ -60,22 +60,20 @@ export const loginPatient = expressAsyncHandler(async (req, res) =>{
         throw new Error("Patient does not exist");
     }
     const isMatch = (patient.name === name);
-    if(!isMatch){
-        res.status(400).json({message: 'Invalid Name'});
+    if (!isMatch) {
+        res.status(400).json({ message: 'Invalid Name' });
         return;
     }
     const token = jwt.sign({ patientId: patient._id, contact: patient.phone }, process.env.SECRET_KEY, { expiresIn: '1h' });
-    res.status(201).json({token})
+    res.status(201).json({ token })
 })
 
 export const setClosestNgoSubscribers = expressAsyncHandler(async (req, res) => {
     const { id } = req.body;
-
     if (!id) {
         res.status(400);
         throw new Error("Bad Request - Missing id");
     }
-
     const patient = await Patient.findById(id);
     if (!patient) {
         res.status(400);
@@ -138,8 +136,8 @@ export const showDoctorsList = expressAsyncHandler(async (req, res) => {
                     startTime: slot.startTime,
                     endTime: slot.endTime,
                     isBooked: slot.isBooked
-                })) || [] 
-            })) || [] 
+                })) || []
+            })) || []
         }));
     } catch (error) {
         console.error("Error fetching doctors list:", error.message);
@@ -153,9 +151,9 @@ export const showDoctorsList = expressAsyncHandler(async (req, res) => {
 
                     Based on the symptoms, suggest suitable doctors in JSON format.  
 
-                    Use this JSON schema:  
-                    Doctor = {
-                        'id': str, 
+                    Use this JSON schema:                   
+                    Doctor = {              
+                        'id': str,
                         'name': str, 
                         'specialization': str, 
                         'availability': list[{
@@ -200,7 +198,7 @@ export const showDoctorsList = expressAsyncHandler(async (req, res) => {
 
 export const selectDoctorFromList = expressAsyncHandler(async (req, res) => {
     const { doctorId, date, startTime, endTime } = req.body;
-    
+
     if (!doctorId || !date || !startTime || !endTime) {
         return res.status(400).json({ message: 'Doctor ID, date, startTime, and endTime are required' });
     }
@@ -242,7 +240,7 @@ export const selectDoctorFromList = expressAsyncHandler(async (req, res) => {
 
     const appointment = new Appointment({
         doctorId,
-        patientId: req.patient.id, 
+        patientId: req.patient.id,
         date: appointmentDate,
         startTime: start,
         endTime: end,
@@ -258,5 +256,52 @@ export const selectDoctorFromList = expressAsyncHandler(async (req, res) => {
         appointment,
     });
 });
+
+
+const createJitsiLink = (meetingName) => {
+    const baseUrl = 'https://meet.jit.si/';
+    return `${baseUrl}${encodeURIComponent(meetingName)}`;
+};
+
+export const showAppointments = expressAsyncHandler(async (req, res) => {
+    const { patientId } = req.body;
+
+    if (!patientId) {
+        res.status(400);
+        throw new Error('Patient ID is required');
+    }
+
+    const appointments = await Appointment.find({ patientId })
+        .populate('doctorId', 'id name contact')
+        .sort({ date: 1, startTime: 1 });
+
+    if (!appointments.length) {
+        res.status(404);
+        throw new Error('No appointments found');
+    }
+
+    const updatedAppointments = appointments.map((appointment) => {
+        const meetingName = `doctor-${appointment.doctorId}-patient-${appointment.patientId._id}-${appointment.date.toISOString().split('T')[0]}`;
+        const meetLink = createJitsiLink(meetingName);
+
+        return {
+            _id: appointment._id,
+            patientId: appointment.patientId._id,
+            doctorId: appointment.doctorId,
+            date: appointment.date,
+            startTime: appointment.startTime,
+            endTime: appointment.endTime,
+            status: appointment.status,
+            createdAt: appointment.createdAt,
+            updatedAt: appointment.updatedAt,
+            meetLink,
+            meetStartTime: appointment.startTime,
+            meetEndTime: appointment.endTime,
+        };
+    });
+
+    res.status(200).json(updatedAppointments);
+});
+
 
 
