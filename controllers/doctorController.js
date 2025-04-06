@@ -149,7 +149,7 @@ const createJitsiLink = (meetingName) => {
 };
 
 export const showAppointments = expressAsyncHandler(async (req, res) => {
-  const doctorId  = req.doctor.doctorId;
+  const doctorId = req.doctor._id;
 
   if (!doctorId) {
     res.status(400);
@@ -190,31 +190,35 @@ export const showAppointments = expressAsyncHandler(async (req, res) => {
 
 
 export const showSlots = expressAsyncHandler(async (req, res) => {
-  const { doctorId, date } = req.body;
+  const { date } = req.query;
+  const doctorId = req.doctor._id;
 
   if (!doctorId || !date) {
-      return res.status(400).json({ message: 'Doctor ID and date are required' });
+    return res.status(400).json({ message: 'Doctor ID and date are required' });
   }
 
   const doctor = await Doctor.findById(doctorId);
   if (!doctor) {
-      return res.status(404).json({ message: 'Doctor not found' });
+    return res.status(404).json({ message: 'Doctor not found' });
   }
 
   const dateAvailability = doctor.availability.find(
-      (availability) => availability.date.toISOString().split('T')[0] === new Date(date).toISOString().split('T')[0]
+    (availability) =>
+      availability.date.toISOString().split('T')[0] === new Date(date).toISOString().split('T')[0]
   );
 
   if (!dateAvailability) {
-      return res.status(404).json({ message: `No available slots on ${date}` });
+    return res.status(404).json({ message: `No available slots on ${date}` });
   }
+
   const availableSlots = dateAvailability.slots;
 
   res.status(200).json({
-      date,
-      availableSlots,
+    date,
+    availableSlots,
   });
 });
+
 
 export const getAllDoctors = expressAsyncHandler(async (req, res) => {
   const doctors = await Doctor.find();
