@@ -33,6 +33,10 @@ const ticketSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  resolved: {
+    type: Boolean,
+    default: false
+  }
 }, { timestamps: true });
 
 export const Ticket = mongoose.model('Ticket', ticketSchema);
