@@ -10,8 +10,8 @@ import jwt from 'jsonwebtoken';
 
 export const addPatient = expressAsyncHandler(async (req, res) => {
 
-    const { name, address, phone, gender, dob, description } = req.body;
-    if (!name || !address || !phone || !gender || !dob || !description) {
+    const { name, address, phone, gender, dob } = req.body;
+    if (!name || !address || !phone || !gender || !dob) {
         res.status(400);
         throw new Error("Please add all the fields");
     }
@@ -28,8 +28,7 @@ export const addPatient = expressAsyncHandler(async (req, res) => {
         gender: gender,
         dob: dob,
         latitude: latitude,
-        longitude: longitude,
-        description: description
+        longitude: longitude
     };
     await Patient.create(patient);
 
@@ -45,7 +44,9 @@ export const addPatient = expressAsyncHandler(async (req, res) => {
 
 export const loginPatient = expressAsyncHandler(async (req, res) => {
     const { phone, name } = req.body;
-    const isValidPhoneNumber = /^(\+91\s?|0)?[6-9][0-9]{9}$/.test(phone);
+    const isValidPhoneNumber = (contact) =>
+        /^(\+91[\s-]?|0)?[6-9]\d{9}$/.test(contact.trim());
+      
     if (!phone || !name) {
         res.status(400);
         throw new Error("Please add all the fields");
@@ -61,7 +62,7 @@ export const loginPatient = expressAsyncHandler(async (req, res) => {
     }
     const isMatch = (patient.name === name);
     if (!isMatch) {
-        res.status(400).json({ message: 'Invalid Name' });
+        res.status(400).json({ message: `Invalid Name ${patient.name}`});
         return;
     }
     const token = jwt.sign({ patientId: patient._id, contact: patient.phone }, process.env.SECRET_KEY, { expiresIn: '1h' });
@@ -115,6 +116,9 @@ export const showDoctorsList = expressAsyncHandler(async (req, res) => {
     }
 
     const patientSymptoms = symptoms;
+    patient.description = patientSymptoms;
+    await patient.save();
+
     let allDoctors = [];
     try {
         // Include availability in the query

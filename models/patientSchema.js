@@ -8,7 +8,7 @@ const patientSchema = new mongoose.Schema({
   phone: { type: String, required: true },
   latitude: { type: Number },
   longitude: { type: Number },
-  description: { type: String, required: true  },
+  description: { type: String, required: false  },
   medicalHistory: [{
     condition: { type: String },
     startDate: { type: Date },

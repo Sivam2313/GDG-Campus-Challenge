@@ -1,6 +1,7 @@
 import asyncHandler from 'express-async-handler';
 import jwt from 'jsonwebtoken';
 import { geocodeAddress } from '../utils/geocode.js';
+import { Ticket } from '../models/ticketSchema.js';
 import Ngo from '../models/ngoSchema.js';
 
 export const addNgo = asyncHandler(async (req, res) => {
@@ -71,3 +72,47 @@ export const loginNgo = asyncHandler(async (req, res) => {
 
   res.status(201).json({ token });
 });
+
+export const showTickets = asyncHandler(async (req, res) => {
+  try {
+    const { ngoId } = req.query;
+
+    if (!ngoId) {
+      return res.status(400).json({ message: 'ngoId is required' });
+    }
+
+    const tickets = await Ticket.find({ subscribers: ngoId })
+      .populate('subscribers', 'name contact') 
+      .sort({ createdAt: -1 });
+
+    if (!tickets.length) {
+      return res.status(404).json({ message: 'No tickets found for this NGO' });
+    }
+
+    res.status(200).json(tickets);
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to retrieve tickets', error: error.message });
+  }
+});
+
+
+export const resolveTickets = asyncHandler(async (req, res) => {
+  const { ticketId } = req.params;
+
+  try {
+    const ticket = await Ticket.findById(ticketId);
+    console.log(ticket)
+    if (!ticket) {
+      return res.status(404).json({ message: 'Ticket not found' });
+    }
+
+    ticket.resolved = true;
+    await ticket.save();
+
+    res.status(200).json({ message: 'Ticket resolved successfully', ticket });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to resolve ticket', error: error.message });
+  }
+});
+
+

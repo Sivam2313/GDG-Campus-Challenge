@@ -3,6 +3,6 @@ import { addAppointment } from '../controllers/appointmentController.js';
 import { protectPatient } from '../middleware/authMiddleware.js';
 const router = express.Router();
 
-router.post('/addAppointment', addAppointment);
+router.post('/addAppointment', protectPatient, addAppointment);
 
 export const appointmentRoutes = router;

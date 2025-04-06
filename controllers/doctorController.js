@@ -17,7 +17,9 @@ export const addDoctor = asyncHandler(async (req, res) => {
     res.status(400);
     throw new Error('Please add all fields');
   }
-  const isValidPhoneNumber = /^(\+91\s?|0)?[6-9][0-9]{9}$/.test(contact);
+  const isValidPhoneNumber = (contact) =>
+    /^(\+91[\s-]?|0)?[6-9]\d{9}$/.test(contact.trim());
+  
   if(!isValidPhoneNumber){
     res.status(400);
     throw new Error('Invalid Contact Details');
